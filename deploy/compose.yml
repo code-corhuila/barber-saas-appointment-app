@@ -1,0 +1,18 @@
+# The built remote, served for the shell during development and review. The installed app does
+# not use this container: the remote is copied into the shell's packaged build (ADR-013).
+services:
+  appointment-app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    expose: ["80"]
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+    networks: [platform]
+
+networks:
+  platform:
+    name: platform
+    external: true
