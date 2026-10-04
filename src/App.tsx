@@ -1,14 +1,36 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { MountContext } from './shell-contract';
+import { listBarbers } from './appointment/appointments-api';
+import { ownBarber } from './appointment/rules';
 import { parseRoute, routePath, type Route } from './navigation/routes';
+import { AgendaPage } from './pages/AgendaPage';
 import { BookingPage } from './pages/BookingPage';
+import { HistoryPage } from './pages/HistoryPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
+import { LoadView } from './ui/LoadView';
+import { useLoad } from './ui/load';
 import { STYLES } from './ui/styles';
 
 /** The path inside the domain from the browser address, e.g. /appointments/new → /new. */
 function pathInDomain(basePath: string): string {
   const path = window.location.pathname;
   return path.startsWith(basePath) ? path.slice(basePath.length) || '/' : '/';
+}
+
+/** A barber's agenda and history, found by their user id among the barbershop's profiles. */
+function BarberScreens({ context, userId, route, go }: { context: MountContext; userId: string; route: Route;
+                                                        go(next: Route): void }) {
+  const [own, reload] = useLoad(async () => ownBarber((await listBarbers(context.api)).data, userId), [userId],
+    'No se pudo cargar tu perfil de barbero.');
+  return (
+    <LoadView load={own} onRetry={reload} isEmpty={(id) => id === null}
+              empty="Aún no tienes perfil de barbero. Pide al administrador de la barbería que lo cree.">
+      {(barberId) => (route.name === 'history'
+        ? <HistoryPage api={context.api} barberId={barberId!} onBack={() => go({ name: 'home' })} />
+        : <AgendaPage api={context.api} barberId={barberId!} title="Mi agenda"
+                      onHistory={() => go({ name: 'history' })} />)}
+    </LoadView>
+  );
 }
 
 /**
@@ -40,8 +62,12 @@ export function App({ context }: { context: MountContext }) {
                           onBooked={() => go({ name: 'home' })} onBack={() => go({ name: 'home' })} />;
   } else if (user.role === 'CLIENT') {
     screen = <MyAppointmentsPage api={context.api} onBook={() => go({ name: 'book' })} />;
+  } else if (user.role === 'BARBER') {
+    screen = <BarberScreens context={context} userId={user.id} route={route} go={go} />;
+  } else if (user.role === 'ADMIN_BARBERSHOP') {
+    screen = <AgendaPage api={context.api} title="Agenda" />;
   } else {
-    screen = <p className="ap-empty">La agenda de la barbería estará disponible muy pronto.</p>;
+    screen = <p className="ap-empty">La administración de la plataforma no gestiona citas de una barbería.</p>;
   }
 
   return (
