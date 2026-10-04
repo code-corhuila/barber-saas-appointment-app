@@ -33,3 +33,19 @@ const PESOS = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 export function formatCop(cents: number): string {
   return `$ ${PESOS.format(Math.round(cents / 100))}`;
 }
+
+/**
+ * The shell decides the message of every error (userMessage), but it only knows identity's business
+ * texts and shows a generic one for any other 422. These are appointment-api's, so this domain says
+ * them better; anything else keeps the shell's message.
+ */
+export function explain(err: { status: number; message: string; userMessage: string }): string {
+  if (err.status !== 422) return err.userMessage;
+  const window = /cancellation window of (\d+) hours/.exec(err.message);
+  if (window) return `Ya no puedes cancelar: la barbería pide hacerlo con al menos ${window[1]} horas de anticipación.`;
+  if (err.message.startsWith('The barber already has an appointment')) return 'Ese horario ya fue reservado. Elige otro.';
+  if (err.message.startsWith('The barber does not offer that time')) return 'El barbero no atiende a esa hora. Elige otro horario.';
+  if (err.message.startsWith('The service does not fit')) return 'El servicio no alcanza a terminar ese día. Elige una hora más temprano.';
+  if (err.message.startsWith('An appointment in')) return 'La cita cambió de estado. Actualiza la lista.';
+  return err.userMessage;
+}
