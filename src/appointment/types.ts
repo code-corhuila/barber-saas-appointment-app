@@ -1,0 +1,64 @@
+/**
+ * The resources the app uses, as the APIs return them. They replace the prototype's
+ * src/types/appointment.ts: ids are UUIDs, money is integer cents (ADR-010), times are HH:mm, and
+ * an appointment carries ids instead of names (the names live in other domains).
+ */
+export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+
+/** appointment-service.yaml, Appointment. */
+export interface Appointment {
+  id: string;
+  /** null for a walk-in created by staff. */
+  clientId: string | null;
+  barberId: string;
+  serviceId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: AppointmentStatus;
+  priceAtBookingCents: number;
+  notes: string | null;
+  cancelledReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+/** appointment-service.yaml, BookAppointmentRequest: no price, status or barbershop (DEC-APPT-02). */
+export interface NewAppointment {
+  barberId: string;
+  serviceId: string;
+  date: string;
+  startTime: string;
+  notes?: string;
+}
+
+/** The staff transitions of the state machine, by the last segment of their route. */
+export type Transition = 'confirm' | 'start' | 'complete' | 'no-show';
+
+/** barbershop-service.yaml, Service. */
+export interface Service {
+  id: string;
+  name: string;
+  durationMinutes: number;
+  priceCents: number;
+  isActive: boolean;
+}
+
+/** barbershop-service.yaml, BarberProfile: no name or photo (DEC-SHOP-04, OQ-08). */
+export interface BarberProfile {
+  id: string;
+  userId: string;
+  experienceYears: number;
+}
+
+/** schedule-service.yaml, Availability. */
+export interface Availability {
+  slots: { startTime: string; endTime: string }[];
+}
+
+/** The {data, meta} envelope of every list (_shared.yaml). */
+export interface Page<T> {
+  data: T[];
+  meta: { page: number; limit: number; total: number; totalPages: number };
+}
