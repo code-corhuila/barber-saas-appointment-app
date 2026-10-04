@@ -4,7 +4,7 @@ import {
   bookAppointment, cancelAppointment, getAvailability, listAppointments, listBarbers, listServices, move,
 } from './appointments-api';
 import { actionsFor, bookingBlocked, canClientCancel, completedTotal, nextDays, ownBarber } from './rules';
-import { formatCop, STATUS_LABELS } from './labels';
+import { explain, formatCop, STATUS_LABELS } from './labels';
 import type { Appointment } from './types';
 
 function fakeApi() {
@@ -113,5 +113,19 @@ describe('labels', () => {
   it('shows every status in Spanish and money in whole pesos', () => {
     expect(STATUS_LABELS.NO_SHOW).toBe('No asistió');
     expect(formatCop(2_500_000)).toBe('$ 25.000');
+  });
+});
+
+describe('business messages', () => {
+  const error = (status: number, message: string) => ({ status, message, userMessage: 'del shell' });
+
+  it("says appointment-api's 422 in Spanish and leaves every other error to the shell", () => {
+    expect(explain(error(422, 'The appointment is inside the cancellation window of 4 hours')))
+      .toBe('Ya no puedes cancelar: la barbería pide hacerlo con al menos 4 horas de anticipación.');
+    expect(explain(error(422, 'The barber already has an appointment at that time'))).toMatch(/ya fue reservado/);
+    expect(explain(error(422, 'The barber does not offer that time on 2026-10-10'))).toMatch(/no atiende/);
+    expect(explain(error(422, 'An appointment in COMPLETED cannot be cancelled'))).toMatch(/cambió de estado/);
+    expect(explain(error(422, 'something else'))).toBe('del shell');
+    expect(explain(error(404, 'Appointment not found'))).toBe('del shell');
   });
 });
