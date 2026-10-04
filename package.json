@@ -1,0 +1,29 @@
+{
+  "name": "barber-saas-appointment-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node build.mjs && http-server dist/appointment -p 4304 --cors -c-1",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ionic/react": "~8.8.19",
+    "ionicons": "^7.4.0",
+    "react": "~19.1.0",
+    "react-dom": "~19.1.0"
+  },
+  "devDependencies": {
+    "@softarc/native-federation": "~3.5.6",
+    "@softarc/native-federation-esbuild": "~3.5.6",
+    "@types/react": "~19.1.0",
+    "@types/react-dom": "~19.1.0",
+    "http-server": "^14.1.1",
+    "typescript": "~5.9.3",
+    "vitest": "~4.1.11"
+  },
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  }
+}
