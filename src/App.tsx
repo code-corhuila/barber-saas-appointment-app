@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { IonButton } from '@ionic/react';
 import type { MountContext } from './shell-contract';
 import { listBarbers } from './appointment/appointments-api';
-import { ownBarber } from './appointment/rules';
+import { bookingShop, ownBarber } from './appointment/rules';
 import { parseRoute, routePath, type Route } from './navigation/routes';
 import { AgendaPage } from './pages/AgendaPage';
 import { BookingPage } from './pages/BookingPage';
@@ -58,8 +59,17 @@ export function App({ context }: { context: MountContext }) {
   if (!user) {
     screen = <p className="ap-empty">Inicia sesión para ver tus citas.</p>;
   } else if (route.name === 'book') {
-    screen = <BookingPage api={context.api} user={user} barbershopId={route.barbershopId} serviceId={route.serviceId}
-                          onBooked={() => go({ name: 'home' })} onBack={() => go({ name: 'home' })} />;
+    const shop = bookingShop(route.barbershopId, context.session.barbershopId());
+    const toCatalog = () => context.navigate('/barbershops');
+    screen = shop
+      ? <BookingPage key={shop} api={context.api} session={context.session} barbershopId={shop}
+                     serviceId={route.serviceId} onBooked={() => go({ name: 'home' })} onCatalog={toCatalog} />
+      : (
+        <div className="ap-center">
+          <p className="ap-empty">Elige una barbería en el catálogo para reservar tu cita.</p>
+          <IonButton className="ap-primary" onClick={toCatalog}>Ver barberías</IonButton>
+        </div>
+      );
   } else if (user.role === 'CLIENT') {
     screen = <MyAppointmentsPage api={context.api} onBook={() => go({ name: 'book' })} />;
   } else if (user.role === 'BARBER') {
