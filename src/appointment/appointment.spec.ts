@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '../shell-contract';
 import {
-  bookAppointment, cancelAppointment, getAvailability, listAppointments, listBarbers, listServices, move,
+  bookAppointment, cancelAppointment, getAvailability, listAppointments, listBarbers, listServices, listShopBarbers,
+  listShopServices, move,
 } from './appointments-api';
-import { actionsFor, bookingBlocked, canClientCancel, completedTotal, nextDays, ownBarber } from './rules';
+import { barberName } from './catalog';
+import { actionsFor, bookingShop, canClientCancel, completedTotal, enterFailure, enterThen, nextDays, ownBarber } from './rules';
 import { explain, formatCop, STATUS_LABELS } from './labels';
 import type { Appointment } from './types';
 
@@ -54,6 +56,16 @@ describe('appointments api', () => {
     expect(api.post).toHaveBeenNthCalledWith(3, '/api/v1/appointments/a2/cancel', {});
   });
 
+  it("reads the booking's catalog from the barbershop's public pages", async () => {
+    const api = fakeApi();
+
+    await listShopServices(api, 'shop-1');
+    await listShopBarbers(api, 'shop-1');
+
+    expect(api.get).toHaveBeenNthCalledWith(1, '/api/v1/barbershops/shop-1/services?limit=100');
+    expect(api.get).toHaveBeenNthCalledWith(2, '/api/v1/barbershops/shop-1/barbers?limit=100');
+  });
+
   it('asks barbershop-api and schedule-api through the same client and the gateway', async () => {
     const api = fakeApi();
 
@@ -90,12 +102,23 @@ describe('rules', () => {
     expect(canClientCancel('IN_PROGRESS')).toBe(false);
   });
 
-  it('explains why a client cannot book in a barbershop their session is not bound to (OQ-07)', () => {
-    expect(bookingBlocked({ role: 'CLIENT', barbershopId: 'shop-1' }, 'shop-1')).toBeNull();
-    expect(bookingBlocked({ role: 'CLIENT', barbershopId: 'shop-1' }, undefined)).toBeNull();
-    expect(bookingBlocked({ role: 'CLIENT', barbershopId: null }, 'shop-1')).toMatch(/vinculada/);
-    expect(bookingBlocked({ role: 'CLIENT', barbershopId: 'shop-2' }, 'shop-1')).toMatch(/vinculada/);
-    expect(bookingBlocked(null, 'shop-1')).toMatch(/Inicia sesión/);
+  it('books in the barbershop of the link, or else the one the session already entered', () => {
+    expect(bookingShop('shop-1', null)).toBe('shop-1');
+    expect(bookingShop('shop-1', 'shop-2')).toBe('shop-1');
+    expect(bookingShop(undefined, 'shop-2')).toBe('shop-2');
+    expect(bookingShop(undefined, null)).toBeNull();
+  });
+
+  it('says why the barbershop could not be entered and whether retrying makes sense', () => {
+    const apiError = (status: number, code: string) =>
+      ({ status, code, message: '', details: [], traceId: 't', userMessage: 'del shell' });
+
+    expect(enterFailure(apiError(404, 'NOT_FOUND')))
+      .toEqual({ message: 'Esta barbería no está disponible en este momento.', retry: false });
+    expect(enterFailure(apiError(503, 'SERVICE_UNAVAILABLE')))
+      .toEqual({ message: 'No pudimos comprobar la barbería. Inténtalo de nuevo.', retry: true });
+    expect(enterFailure(apiError(0, 'NETWORK_ERROR'))).toEqual({ message: 'del shell', retry: true });
+    expect(enterFailure(new Error('boom')).retry).toBe(true);
   });
 
   it("finds the barber's own profile by user id", () => {
@@ -106,6 +129,15 @@ describe('rules', () => {
   it('adds up only what completed appointments generated', () => {
     expect(completedTotal([appointment({ status: 'COMPLETED' }), appointment({ status: 'CANCELLED' }),
       appointment({ status: 'COMPLETED', priceAtBookingCents: 1_000_000 })])).toBe(3_500_000);
+  });
+});
+
+describe('names', () => {
+  it("shows the barber's name, with a Spanish fallback while a profile has none", () => {
+    expect(barberName({ fullName: 'Juan Pérez' })).toBe('Juan Pérez');
+    expect(barberName({ fullName: null })).toBe('Barbero sin nombre');
+    expect(barberName({ fullName: '  ' })).toBe('Barbero sin nombre');
+    expect(barberName(undefined)).toBe('Barbero');
   });
 });
 
@@ -127,5 +159,39 @@ describe('business messages', () => {
     expect(explain(error(422, 'An appointment in COMPLETED cannot be cancelled'))).toMatch(/cambió de estado/);
     expect(explain(error(422, 'something else'))).toBe('del shell');
     expect(explain(error(404, 'Appointment not found'))).toBe('del shell');
+  });
+});
+
+describe('entering the barbershop', () => {
+  function fakeSession(fails?: unknown) {
+    const calls: string[] = [];
+    return {
+      calls,
+      enterBarbershop: vi.fn(async (id: string) => {
+        calls.push(`enter ${id}`);
+        if (fails) throw fails;
+      }),
+    };
+  }
+
+  it('enters the barbershop before any request scoped to it', async () => {
+    const session = fakeSession();
+
+    const result = await enterThen(session, 'shop-1', async () => {
+      session.calls.push('load');
+      return 'catalog';
+    });
+
+    expect(result).toBe('catalog');
+    expect(session.calls).toEqual(['enter shop-1', 'load']);
+  });
+
+  it('requests nothing when the barbershop cannot be entered', async () => {
+    const notFound = { status: 404, code: 'NOT_FOUND', message: '', details: [], traceId: 't', userMessage: 'x' };
+    const session = fakeSession(notFound);
+    const load = vi.fn();
+
+    await expect(enterThen(session, 'shop-x', load)).rejects.toBe(notFound);
+    expect(load).not.toHaveBeenCalled();
   });
 });
