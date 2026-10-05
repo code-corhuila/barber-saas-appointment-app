@@ -55,6 +55,15 @@ export interface ShellSession {
   signIn(auth: AuthResponse): void;
   signOut(): void;
   subscribe(listener: (user: SessionUser | null) => void): () => void;
+  /**
+   * Call before any tenant-scoped request made for a barbershop the user picked (DEC-AUTH-06).
+   * For a CLIENT it gets a token bound to that barbershop, and `api` sends it from then on; staff
+   * resolve at once. Rejects with the shell's ApiError: NOT_FOUND (closed or unknown barbershop),
+   * SERVICE_UNAVAILABLE (it could not be checked).
+   */
+  enterBarbershop(barbershopId: string): Promise<void>;
+  /** Staff: their own barbershop. Client: the one entered, while its token is valid. */
+  barbershopId(): string | null;
 }
 
 export interface MountContext {
