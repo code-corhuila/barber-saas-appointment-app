@@ -20,10 +20,15 @@ export async function loadNames(api: ApiClient): Promise<Names> {
     barbers.status === 'fulfilled' ? barbers.value.data.map((b) => [b.id, b]) : []);
   return {
     service: (id) => serviceById.get(id)?.name ?? 'Servicio',
-    // The profile carries no name yet (OQ-08): its experience is what tells barbers apart.
-    barber: (id) => {
-      const b = barberById.get(id);
-      return b ? `Barbero · ${b.experienceYears} años de experiencia` : 'Barbero';
-    },
+    barber: (id) => barberName(barberById.get(id)),
   };
+}
+
+/**
+ * The name barbershop-api copied from identity-auth (ADR-014). A profile created before that copy can
+ * still come without one; a barber missing from the catalog is just "Barbero".
+ */
+export function barberName(barber: Pick<BarberProfile, 'fullName'> | undefined): string {
+  if (!barber) return 'Barbero';
+  return barber.fullName?.trim() || 'Barbero sin nombre';
 }
