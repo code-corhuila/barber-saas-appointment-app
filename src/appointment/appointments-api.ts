@@ -48,6 +48,15 @@ export function listBarbers(api: ApiClient): Promise<Page<BarberProfile>> {
   return api.get<Page<BarberProfile>>('/api/v1/barbers?limit=100');
 }
 
+/** The booking's catalog: the public pages of the barbershop the client picked (DEC-SHOP-02). */
+export function listShopServices(api: ApiClient, barbershopId: string): Promise<Page<Service>> {
+  return api.get<Page<Service>>(`/api/v1/barbershops/${encodeURIComponent(barbershopId)}/services?limit=100`);
+}
+
+export function listShopBarbers(api: ApiClient, barbershopId: string): Promise<Page<BarberProfile>> {
+  return api.get<Page<BarberProfile>>(`/api/v1/barbershops/${encodeURIComponent(barbershopId)}/barbers?limit=100`);
+}
+
 /** The free slots belong to the schedule domain: asked to schedule-api, through the gateway. */
 export function getAvailability(api: ApiClient, barberId: string, serviceId: string, date: string):
     Promise<Availability> {
