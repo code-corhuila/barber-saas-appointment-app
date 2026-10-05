@@ -1,22 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { IonButton } from '@ionic/react';
-import type { ApiClient, SessionUser } from '../shell-contract';
+import { IonButton, IonSpinner } from '@ionic/react';
+import type { ApiClient, ShellSession } from '../shell-contract';
 import { isApiError } from '../shell-contract';
-import { bookAppointment, getAvailability, listBarbers, listServices } from '../appointment/appointments-api';
+import { bookAppointment, getAvailability, listShopBarbers, listShopServices } from '../appointment/appointments-api';
+import { barberName } from '../appointment/catalog';
 import { explain, formatCop } from '../appointment/labels';
-import { bookingBlocked, nextDays } from '../appointment/rules';
+import { enterFailure, enterThen, nextDays } from '../appointment/rules';
 import { Field } from '../ui/Field';
 import { LoadView } from '../ui/LoadView';
 import { messageOf, newIdempotencyKey, useLoad } from '../ui/load';
 
 interface BookingPageProps {
   api: ApiClient;
-  user: SessionUser | null;
-  /** From barbershop-app's link; the booking itself always uses the token's barbershop. */
-  barbershopId?: string;
+  session: Pick<ShellSession, 'enterBarbershop'>;
+  /** From barbershop-app's link, or the barbershop the session already entered. */
+  barbershopId: string;
   serviceId?: string;
   onBooked(): void;
-  onBack(): void;
+  onCatalog(): void;
 }
 
 /**
@@ -24,8 +25,7 @@ interface BookingPageProps {
  * slots schedule-api offers. The server computes the end and the price; the button is disabled while
  * sending, and a retry of the same choice reuses its Idempotency-Key, so it never books twice.
  */
-export function BookingPage({ api, user, barbershopId, serviceId: preselected, onBooked, onBack }: BookingPageProps) {
-  const blocked = bookingBlocked(user, barbershopId);
+export function BookingPage({ api, session, barbershopId, serviceId: preselected, onBooked, onCatalog }: BookingPageProps) {
   const days = nextDays();
   const [serviceId, setServiceId] = useState<string | undefined>(preselected);
   const [barberId, setBarberId] = useState<string | undefined>();
@@ -39,23 +39,43 @@ export function BookingPage({ api, user, barbershopId, serviceId: preselected, o
   // Another choice is another intent: it gets its own key.
   useEffect(() => { key.current = newIdempotencyKey(); }, [serviceId, barberId, date, slot, notes]);
 
+  // The session enters the barbershop before anything scoped to it is requested (DEC-AUTH-06).
+  const [entered, setEntered] = useState<'entering' | 'in' | { message: string; retry: boolean }>('entering');
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let current = true;
+    setEntered('entering');
+    enterThen(session, barbershopId, async () => undefined).then(
+      () => { if (current) setEntered('in'); },
+      (err) => { if (current) setEntered(enterFailure(err)); });
+    return () => { current = false; };
+  }, [session, barbershopId, attempt]);
+
   const [catalog, reloadCatalog] = useLoad(async () => {
-    if (blocked) return null;
-    const [services, barbers] = await Promise.all([listServices(api), listBarbers(api)]);
+    if (entered !== 'in') return null;
+    const [services, barbers] = await Promise.all([listShopServices(api, barbershopId),
+      listShopBarbers(api, barbershopId)]);
     return { services: services.data.filter((s) => s.isActive), barbers: barbers.data };
-  }, [blocked], 'No se pudieron cargar los servicios y barberos.');
+  }, [entered, barbershopId], 'No se pudieron cargar los servicios y barberos.');
 
   const [slots, reloadSlots] = useLoad(async () => {
-    if (!serviceId || !barberId) return null;
+    if (entered !== 'in' || !serviceId || !barberId) return null;
     return (await getAvailability(api, barberId, serviceId, date)).slots;
-  }, [serviceId, barberId, date], 'No se pudo cargar la disponibilidad.');
+  }, [entered, serviceId, barberId, date], 'No se pudo cargar la disponibilidad.');
 
-  if (blocked) {
+  if (entered === 'entering') {
+    return <div className="ap-center" role="status"><IonSpinner name="crescent" aria-label="Abriendo la barbería" /></div>;
+  }
+  if (entered !== 'in') {
     return (
       <section className="ap-page">
         <h1 className="ap-header">Reservar cita</h1>
-        <p className="ap-empty">{blocked}</p>
-        <div className="ap-center"><IonButton className="ap-secondary" fill="outline" onClick={onBack}>Volver</IonButton></div>
+        <div className="ap-center" role="alert">
+          <p className="ap-error">{entered.message}</p>
+          {entered.retry
+            ? <IonButton className="ap-primary" onClick={() => setAttempt((n) => n + 1)}>Reintentar</IonButton>
+            : <IonButton className="ap-secondary" fill="outline" onClick={onCatalog}>Volver al catálogo</IonButton>}
+        </div>
       </section>
     );
   }
@@ -101,7 +121,7 @@ export function BookingPage({ api, user, barbershopId, serviceId: preselected, o
               {c!.barbers.map((b) => (
                 <button key={b.id} type="button" className={`ap-chip-button${b.id === barberId ? ' selected' : ''}`}
                         aria-pressed={b.id === barberId} onClick={() => { setBarberId(b.id); setSlot(undefined); }}>
-                  Barbero · {b.experienceYears} años
+                  {barberName(b)}
                 </button>
               ))}
             </div>
