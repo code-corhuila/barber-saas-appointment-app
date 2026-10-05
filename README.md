@@ -38,7 +38,7 @@ the prototype (`(client)/booking/[barbershopId]`, `(client)/appointments`, `(bar
 | Screen | Who | Calls |
 |---|---|---|
 | Mis citas: the client's appointments, cancel one | `CLIENT` | `GET /api/v1/appointments`, `POST …/{id}/cancel` |
-| Reservar cita: service, barber, day, free slot, note | `CLIENT` (also `/appointments/new?barbershopId&serviceId` from barbershop-app) | `GET /api/v1/services`, `/api/v1/barbers` (barbershop-api), `GET /api/v1/availability` (schedule-api), `POST /api/v1/appointments` with `Idempotency-Key` |
+| Reservar cita: service, barber, day, free slot, note | `CLIENT` (from barbershop-app's *Continuar*: `/appointments/new?barbershopId&serviceId`) | `context.session.enterBarbershop(id)` first, then `GET /api/v1/barbershops/{id}/services` and `/barbers` (barbershop-api), `GET /api/v1/availability` (schedule-api), `POST /api/v1/appointments` with `Idempotency-Key` |
 | Mi agenda: one day, confirm, start, complete, no-show, cancel | `BARBER` (own profile) | `GET /api/v1/appointments?barberId&date`, `POST …/{id}/{transition}` |
 | Mi historial: completed appointments and their total | `BARBER` | `GET /api/v1/appointments?barberId&status=COMPLETED` |
 | Agenda: the whole barbershop, one day | `ADMIN_BARBERSHOP` | `GET /api/v1/appointments?date`, `POST …/{id}/{transition}` |
@@ -51,6 +51,14 @@ src/navigation/routes.ts       /, /new and /history inside /appointments
 src/pages/                     MyAppointmentsPage, BookingPage, AgendaPage, HistoryPage
 src/ui/                        the four states of every view, the card, fields, styles (prefix ap-)
 ```
+
+**Booking for a client (DEC-AUTH-06).** The barbershop comes from barbershop-app's link, or else from
+the one the session already entered (`context.session.barbershopId()`). Before any request scoped to
+it, the app awaits `context.session.enterBarbershop(barbershopId)`: the shell gets the client a token
+bound to that barbershop and `context.api` sends it from then on. If the barbershop is closed or
+unknown (`NOT_FOUND`) the screen says so and goes back to the catalog; if it could not be checked
+(`SERVICE_UNAVAILABLE`) it offers *Reintentar*. Barbers are shown by the `fullName` barbershop-api
+copied from identity-auth (ADR-014), with a Spanish fallback while a profile has none.
 
 Every view shows loading, error with retry, empty and data. The booking button is disabled while
 sending and each intent has its own `Idempotency-Key`, reused if the same choice is retried, so a
@@ -81,8 +89,5 @@ types and builds the remote.
 
 ### What is missing
 
-- **Clients and OQ-07.** A client's token carries no barbershop, so the booking screen explains
-  that the account is not bound to the barbershop until OQ-07 is decided.
-- **Barber names (OQ-08).** Barbers are told apart by their experience until the profile carries a name.
 - Not in the contract yet: rescheduling, reviews of a completed appointment, and the reward coupon
   applied at booking that the prototype had.
