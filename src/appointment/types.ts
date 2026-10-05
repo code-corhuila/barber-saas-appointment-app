@@ -45,10 +45,11 @@ export interface Service {
   isActive: boolean;
 }
 
-/** barbershop-service.yaml, BarberProfile: no name or photo (DEC-SHOP-04, OQ-08). */
+/** barbershop-service.yaml 1.3.0, BarberProfile: the name is a snapshot from identity-auth (ADR-014). */
 export interface BarberProfile {
   id: string;
   userId: string;
+  fullName: string | null;
   experienceYears: number;
 }
 
