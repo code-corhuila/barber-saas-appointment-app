@@ -1,4 +1,4 @@
-import type { SessionUser } from '../shell-contract';
+import { isApiError, type ShellSession } from '../shell-contract';
 import type { Appointment, AppointmentStatus, Transition } from './types';
 
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -34,20 +34,31 @@ export function canClientCancel(status: AppointmentStatus): boolean {
   return status === 'PENDING' || status === 'CONFIRMED';
 }
 
+/** The barbershop to book in: the one of barbershop-app's link, or else the one the session entered. */
+export function bookingShop(fromLink: string | undefined, entered: string | null): string | null {
+  return fromLink ?? entered ?? null;
+}
+
 /**
- * Why this person cannot book here, or null. The barbershop comes from the token, and a client's
- * token is not bound to the barbershop they picked yet (OQ-07): say so instead of failing later.
+ * Every request of the booking is scoped to the barbershop, so the session enters it first
+ * (DEC-AUTH-06): for a client that brings the token bound to it; for staff it resolves at once.
+ * If it cannot be entered, nothing is requested.
  */
-export function bookingBlocked(user: Pick<SessionUser, 'role' | 'barbershopId'> | null,
-                               barbershopId: string | undefined): string | null {
-  if (!user) return 'Inicia sesión para reservar una cita.';
-  if (barbershopId && user.barbershopId !== barbershopId) {
-    return 'Tu cuenta aún no está vinculada a esta barbería, así que todavía no puedes reservar aquí.';
+export async function enterThen<T>(session: Pick<ShellSession, 'enterBarbershop'>, barbershopId: string,
+                                   load: () => Promise<T>): Promise<T> {
+  await session.enterBarbershop(barbershopId);
+  return load();
+}
+
+/** What the person reads when the barbershop cannot be entered, and whether trying again can help. */
+export function enterFailure(err: unknown): { message: string; retry: boolean } {
+  if (isApiError(err) && err.code === 'NOT_FOUND') {
+    return { message: 'Esta barbería no está disponible en este momento.', retry: false };
   }
-  if (!user.barbershopId) {
-    return 'Tu cuenta aún no está vinculada a una barbería, así que todavía no puedes reservar.';
+  if (isApiError(err) && err.code === 'SERVICE_UNAVAILABLE') {
+    return { message: 'No pudimos comprobar la barbería. Inténtalo de nuevo.', retry: true };
   }
-  return null;
+  return { message: isApiError(err) ? err.userMessage : 'No pudimos abrir la barbería. Inténtalo de nuevo.', retry: true };
 }
 
 /** The profile of the signed-in barber; a barber without one has no agenda yet. */
