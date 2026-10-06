@@ -37,7 +37,7 @@ the prototype (`(client)/booking/[barbershopId]`, `(client)/appointments`, `(bar
 
 | Screen | Who | Calls |
 |---|---|---|
-| Mis citas: the client's appointments, cancel one | `CLIENT` | `GET /api/v1/appointments`, `POST …/{id}/cancel` |
+| Mis citas: the client's appointments of every barbershop, cancel one | `CLIENT` | `GET /api/v1/appointments`, then per barbershop `GET /api/v1/barbershops/{id}`, `/services` and `/barbers` (barbershop-api, public), `POST …/{id}/cancel` |
 | Reservar cita: service, barber, day, free slot, note | `CLIENT` (from barbershop-app's *Continuar*: `/appointments/new?barbershopId&serviceId`) | `context.session.enterBarbershop(id)` first, then `GET /api/v1/barbershops/{id}/services` and `/barbers` (barbershop-api), `GET /api/v1/availability` (schedule-api), `POST /api/v1/appointments` with `Idempotency-Key` |
 | Mi agenda: one day, confirm, start, complete, no-show, cancel | `BARBER` (own profile) | `GET /api/v1/appointments?barberId&date`, `POST …/{id}/{transition}` |
 | Mi historial: completed appointments and their total | `BARBER` | `GET /api/v1/appointments?barberId&status=COMPLETED` |
@@ -59,6 +59,12 @@ bound to that barbershop and `context.api` sends it from then on. If the barbers
 unknown (`NOT_FOUND`) the screen says so and goes back to the catalog; if it could not be checked
 (`SERVICE_UNAVAILABLE`) it offers *Reintentar*. Barbers are shown by the `fullName` barbershop-api
 copied from identity-auth (ADR-014), with a Spanish fallback while a profile has none.
+
+**A client's list (DEC-APPT-06).** While the session has entered no barbershop, *Mis citas* gets the
+client's appointments of every barbershop; each one carries its `barbershopId`. The names come from
+the public pages of those barbershops, each asked once: its name from `GET /api/v1/barbershops/{id}`,
+the barber and the service from its catalog. A barbershop that cannot be read leaves neutral names
+(*Barbería*, *Barbero*, *Servicio*) and the list still shows.
 
 Every view shows loading, error with retry, empty and data. The booking button is disabled while
 sending and each intent has its own `Idempotency-Key`, reused if the same choice is retried, so a
