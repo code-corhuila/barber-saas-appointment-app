@@ -1,5 +1,7 @@
 import type { ApiClient } from '../shell-contract';
-import type { Appointment, Availability, BarberProfile, NewAppointment, Page, Service, Transition } from './types';
+import type {
+  Appointment, Availability, Barbershop, BarberProfile, NewAppointment, Page, Service, Transition,
+} from './types';
 
 /**
  * Typed calls, ALWAYS through the shell's client (context.api): never fetch or axios (norm 5.4.1).
@@ -46,6 +48,11 @@ export function listServices(api: ApiClient): Promise<Page<Service>> {
 
 export function listBarbers(api: ApiClient): Promise<Page<BarberProfile>> {
   return api.get<Page<BarberProfile>>('/api/v1/barbers?limit=100');
+}
+
+/** The public detail of a barbershop (DEC-SHOP-02): a client's list shows its name. */
+export function getBarbershop(api: ApiClient, barbershopId: string): Promise<Barbershop> {
+  return api.get<Barbershop>(`/api/v1/barbershops/${encodeURIComponent(barbershopId)}`);
 }
 
 /** The booking's catalog: the public pages of the barbershop the client picked (DEC-SHOP-02). */
