@@ -1,11 +1,13 @@
 import type { ApiClient } from '../shell-contract';
-import { listBarbers, listServices } from './appointments-api';
-import type { BarberProfile, Service } from './types';
+import { getBarbershop, listBarbers, listServices, listShopBarbers, listShopServices } from './appointments-api';
+import type { Barbershop, BarberProfile, Service } from './types';
 
 /** What a list shows next to each appointment, which carries only ids. */
 export interface Names {
   service(id: string): string;
   barber(id: string): string;
+  /** Only for a client's list, which can cross barbershops (DEC-APPT-06). */
+  barbershop?(id: string): string;
 }
 
 /**
@@ -21,6 +23,30 @@ export async function loadNames(api: ApiClient): Promise<Names> {
   return {
     service: (id) => serviceById.get(id)?.name ?? 'Servicio',
     barber: (id) => barberName(barberById.get(id)),
+  };
+}
+
+/**
+ * A client's names, from the public pages of each barbershop their appointments belong to
+ * (DEC-APPT-06): the barbershop's name from its detail, the barber and the service from its catalog.
+ * Each barbershop is asked once; one that fails, or is no longer visible, leaves neutral names.
+ */
+export async function loadClientNames(api: ApiClient, barbershopIds: string[]): Promise<Names> {
+  const shops = [...new Set(barbershopIds)];
+  const loaded = await Promise.all(shops.map((id) => Promise.allSettled(
+    [getBarbershop(api, id), listShopServices(api, id), listShopBarbers(api, id)] as const)));
+  const shopById = new Map<string, Barbershop>();
+  const serviceById = new Map<string, Service>();
+  const barberById = new Map<string, BarberProfile>();
+  loaded.forEach(([shop, services, barbers]) => {
+    if (shop.status === 'fulfilled') shopById.set(shop.value.id, shop.value);
+    if (services.status === 'fulfilled') services.value.data.forEach((s) => serviceById.set(s.id, s));
+    if (barbers.status === 'fulfilled') barbers.value.data.forEach((b) => barberById.set(b.id, b));
+  });
+  return {
+    service: (id) => serviceById.get(id)?.name ?? 'Servicio',
+    barber: (id) => barberName(barberById.get(id)),
+    barbershop: (id) => shopById.get(id)?.name ?? 'Barbería',
   };
 }
 
