@@ -73,7 +73,7 @@ npm start      # builds and serves dist/appointment at http://localhost:4304 (CO
 ```
 
 Then start the shell (`npm start` in `barber-saas-front`) and the platform (`./scripts/up.sh dev`
-in `barber-saas-infra`), and open `/appointments`.
+in `barber-saas-infra-postgres`), and open `/appointments`.
 
 ### Where the data is
 
