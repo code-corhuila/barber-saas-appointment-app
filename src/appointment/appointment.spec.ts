@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '../shell-contract';
 import {
-  bookAppointment, cancelAppointment, getAvailability, listAppointments, listBarbers, listServices, listShopBarbers,
-  listShopServices, move,
+  bookAppointment, cancelAppointment, getAvailability, getBarbershop, listAppointments, listBarbers, listServices,
+  listShopBarbers, listShopServices, move,
 } from './appointments-api';
-import { barberName } from './catalog';
+import { barberName, loadClientNames } from './catalog';
 import { actionsFor, bookingShop, canClientCancel, completedTotal, enterFailure, enterThen, nextDays, ownBarber } from './rules';
 import { explain, formatCop, STATUS_LABELS } from './labels';
 import type { Appointment } from './types';
@@ -18,7 +18,7 @@ function fakeApi() {
 }
 
 const appointment = (over: Partial<Appointment>): Appointment => ({
-  id: 'a1', clientId: 'c1', barberId: 'b1', serviceId: 's1', date: '2026-10-10', startTime: '10:00',
+  id: 'a1', barbershopId: 'shop-1', clientId: 'c1', barberId: 'b1', serviceId: 's1', date: '2026-10-10', startTime: '10:00',
   endTime: '10:30', status: 'PENDING', priceAtBookingCents: 2_500_000, notes: null, cancelledReason: null,
   createdAt: '', updatedAt: '', createdBy: 'c1', ...over,
 });
@@ -64,6 +64,14 @@ describe('appointments api', () => {
 
     expect(api.get).toHaveBeenNthCalledWith(1, '/api/v1/barbershops/shop-1/services?limit=100');
     expect(api.get).toHaveBeenNthCalledWith(2, '/api/v1/barbershops/shop-1/barbers?limit=100');
+  });
+
+  it("reads a barbershop's name from its public detail", async () => {
+    const api = fakeApi();
+
+    await getBarbershop(api, 'shop-1');
+
+    expect(api.get).toHaveBeenCalledWith('/api/v1/barbershops/shop-1');
   });
 
   it('asks barbershop-api and schedule-api through the same client and the gateway', async () => {
@@ -138,6 +146,44 @@ describe('names', () => {
     expect(barberName({ fullName: null })).toBe('Barbero sin nombre');
     expect(barberName({ fullName: '  ' })).toBe('Barbero sin nombre');
     expect(barberName(undefined)).toBe('Barbero');
+  });
+
+  const page = <T>(data: T[]) => ({ data, meta: { page: 1, limit: 100, total: data.length, totalPages: 1 } });
+
+  it("names a client's appointments from the public pages of each of their barbershops, once each", async () => {
+    const api = fakeApi();
+    api.get.mockImplementation(async (url: string) => {
+      if (url === '/api/v1/barbershops/shop-1') return { id: 'shop-1', name: 'El Clásico' };
+      if (url === '/api/v1/barbershops/shop-2') return { id: 'shop-2', name: 'La Navaja' };
+      if (url === '/api/v1/barbershops/shop-1/services?limit=100') return page([{ id: 's1', name: 'Corte' }]);
+      if (url === '/api/v1/barbershops/shop-2/services?limit=100') return page([{ id: 's2', name: 'Barba' }]);
+      if (url === '/api/v1/barbershops/shop-1/barbers?limit=100') return page([{ id: 'b1', fullName: 'Juan' }]);
+      return page([{ id: 'b2', fullName: 'Ana' }]);
+    });
+
+    const names = await loadClientNames(api, ['shop-1', 'shop-2', 'shop-1']);
+
+    expect(api.get).toHaveBeenCalledTimes(6);
+    expect(api.get).not.toHaveBeenCalledWith('/api/v1/services?limit=100');
+    expect([names.barbershop!('shop-1'), names.service('s1'), names.barber('b1')]).toEqual(['El Clásico', 'Corte', 'Juan']);
+    expect([names.barbershop!('shop-2'), names.service('s2'), names.barber('b2')]).toEqual(['La Navaja', 'Barba', 'Ana']);
+  });
+
+  it('keeps the list when a barbershop cannot be read, with neutral names', async () => {
+    const api = fakeApi();
+    api.get.mockRejectedValue(new Error('404'));
+
+    const names = await loadClientNames(api, ['gone']);
+
+    expect([names.barbershop!('gone'), names.service('s1'), names.barber('b1')]).toEqual(['Barbería', 'Servicio', 'Barbero']);
+  });
+
+  it('asks nothing when the client has no appointments', async () => {
+    const api = fakeApi();
+
+    await loadClientNames(api, []);
+
+    expect(api.get).not.toHaveBeenCalled();
   });
 });
 
