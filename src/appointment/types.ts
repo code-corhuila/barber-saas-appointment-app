@@ -5,9 +5,11 @@
  */
 export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
-/** appointment-service.yaml, Appointment. */
+/** appointment-service.yaml 2.2.0, Appointment. */
 export interface Appointment {
   id: string;
+  /** Output only (DEC-APPT-06): which barbershop it belongs to, since a client's list crosses them. */
+  barbershopId: string;
   /** null for a walk-in created by staff. */
   clientId: string | null;
   barberId: string;
@@ -35,6 +37,12 @@ export interface NewAppointment {
 
 /** The staff transitions of the state machine, by the last segment of their route. */
 export type Transition = 'confirm' | 'start' | 'complete' | 'no-show';
+
+/** barbershop-service.yaml, Barbershop: only what this app shows. */
+export interface Barbershop {
+  id: string;
+  name: string;
+}
 
 /** barbershop-service.yaml, Service. */
 export interface Service {

@@ -3,7 +3,7 @@ import { IonButton } from '@ionic/react';
 import type { ApiClient } from '../shell-contract';
 import { isApiError } from '../shell-contract';
 import { cancelAppointment, listAppointments } from '../appointment/appointments-api';
-import { loadNames } from '../appointment/catalog';
+import { loadClientNames } from '../appointment/catalog';
 import { explain } from '../appointment/labels';
 import { canClientCancel } from '../appointment/rules';
 import { AppointmentCard } from '../ui/AppointmentCard';
@@ -18,11 +18,14 @@ interface MyAppointmentsPageProps {
 
 /**
  * A client's appointments, most recent first (the prototype's (client)/appointments). The server
- * returns only theirs; cancelling asks first, and the barbershop's window is checked by the server.
+ * returns only theirs — of every barbershop while the session has entered none (DEC-APPT-06) — and
+ * each card names its barbershop. Cancelling asks first, and the barbershop's window is checked by
+ * the server.
  */
 export function MyAppointmentsPage({ api, onBook }: MyAppointmentsPageProps) {
   const [load, reload] = useLoad(async () => {
-    const [page, names] = await Promise.all([listAppointments(api, {}), loadNames(api)]);
+    const page = await listAppointments(api, {});
+    const names = await loadClientNames(api, page.data.map((a) => a.barbershopId));
     return { appointments: page.data, names };
   }, [], 'No se pudieron cargar tus citas.');
   const [confirming, setConfirming] = useState<string | null>(null);
