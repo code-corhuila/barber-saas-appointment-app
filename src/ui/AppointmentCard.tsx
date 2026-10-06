@@ -22,6 +22,7 @@ export function AppointmentCard({ appointment: a, names, showDate, children }: A
         <span className="ap-badge" style={{ background: STATUS_COLORS[a.status] }}>{STATUS_LABELS[a.status]}</span>
       </div>
       {!showDate && <p className="ap-title">{names.service(a.serviceId)}</p>}
+      {names.barbershop && <p className="ap-gold">{names.barbershop(a.barbershopId)}</p>}
       <p className="ap-muted">{names.barber(a.barberId)}</p>
       {showDate && <p className="ap-muted">{a.date} · {a.startTime} – {a.endTime}</p>}
       {!showDate && a.clientId === null && <p className="ap-muted">Sin cuenta (atendido en el local)</p>}
