@@ -47,6 +47,7 @@ export const STYLES = `
 .ap-time { font-size: 1.25rem; font-weight: 700; color: #d4af37; margin: 0; }
 .ap-days, .ap-slots { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; }
 .ap-slots { flex-wrap: wrap; overflow: visible; }
+.ap-days { margin-bottom: .75rem; }
 .ap-chip-button { background: #1e1e1e; color: #fff; border: 1px solid #2a2a2a; border-radius: 8px; padding: .5rem .9rem;
   font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .ap-chip-button.selected { background: #d4af37; border-color: #d4af37; color: #121212; }
