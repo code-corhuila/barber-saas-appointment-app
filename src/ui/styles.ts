@@ -17,6 +17,7 @@ export const STYLES = `
   border-radius: 12px; padding: .75rem; margin-bottom: .75rem; color: #fff; text-align: left; cursor: pointer; font: inherit; }
 .ap-card.selected { border-color: #d4af37; }
 .ap-card.inactive { opacity: .5; }
+.ap-card > :last-child { margin-bottom: 0; }
 .ap-logo { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; flex: none; background: #2a2a2a;
   display: grid; place-items: center; color: #d4af37; font-size: 1.5rem; font-weight: 700; }
 .ap-grow { flex: 1; min-width: 0; }
