@@ -41,13 +41,14 @@ the prototype (`(client)/booking/[barbershopId]`, `(client)/appointments`, `(bar
 | Reservar cita: service, barber, day, free slot, note | `CLIENT` (from barbershop-app's *Continuar*: `/appointments/new?barbershopId&serviceId`) | `context.session.enterBarbershop(id)` first, then `GET /api/v1/barbershops/{id}/services` and `/barbers` (barbershop-api), `GET /api/v1/availability` (schedule-api), `POST /api/v1/appointments` with `Idempotency-Key` |
 | Mi agenda: one day, confirm, start, complete, no-show, cancel | `BARBER` (own profile) | `GET /api/v1/appointments?barberId&date`, `POST …/{id}/{transition}` |
 | Mi historial: completed appointments and their total | `BARBER` | `GET /api/v1/appointments?barberId&status=COMPLETED` |
+| Mis métricas: appointments of today, this week or this month — completed, no-shows, cancelled, income of the completed ones, completion rate, upcoming | `BARBER` | `GET /api/v1/appointments?barberId&page&limit=100`, pages until the period's first day |
 | Agenda: the whole barbershop, one day | `ADMIN_BARBERSHOP` | `GET /api/v1/appointments?date`, `POST …/{id}/{transition}` |
 
 ```
 src/mount.tsx                  ./mount(element, context) — what the shell calls
 src/shell-contract.ts          the types of the contract with the shell (copied, never imported)
 src/appointment/               typed calls through context.api, the rules of the screens, labels, names
-src/navigation/routes.ts       /, /new and /history inside /appointments
+src/navigation/routes.ts       /, /new, /history and /stats inside /appointments
 src/pages/                     MyAppointmentsPage, BookingPage, AgendaPage, HistoryPage
 src/ui/                        the four states of every view, the card, fields, styles (prefix ap-)
 ```
