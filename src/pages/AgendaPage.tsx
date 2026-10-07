@@ -17,6 +17,7 @@ interface AgendaPageProps {
   barberId?: string;
   title: string;
   onHistory?(): void;
+  onStats?(): void;
 }
 
 /**
@@ -24,7 +25,7 @@ interface AgendaPageProps {
  * time order, with only the transitions the state machine allows for each status. The server decides
  * again; a refused transition shows why and the day reloads.
  */
-export function AgendaPage({ api, barberId, title, onHistory }: AgendaPageProps) {
+export function AgendaPage({ api, barberId, title, onHistory, onStats }: AgendaPageProps) {
   const days = nextDays();
   const [date, setDate] = useState(days[0].value);
   const [busy, setBusy] = useState(false);
@@ -52,7 +53,10 @@ export function AgendaPage({ api, barberId, title, onHistory }: AgendaPageProps)
     <section className="ap-page">
       <div className="ap-row">
         <h1 className="ap-header">{title}</h1>
-        {onHistory && <IonButton fill="outline" className="ap-secondary" onClick={onHistory}>Historial</IonButton>}
+        <div className="ap-actions" style={{ marginTop: 0 }}>
+          {onStats && <IonButton fill="outline" className="ap-secondary" onClick={onStats}>Métricas</IonButton>}
+          {onHistory && <IonButton fill="outline" className="ap-secondary" onClick={onHistory}>Historial</IonButton>}
+        </div>
       </div>
       <div className="ap-days" role="group" aria-label="Día">
         {days.map((d) => (
