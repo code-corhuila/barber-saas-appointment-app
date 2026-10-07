@@ -6,7 +6,8 @@
 export type Route =
   | { name: 'home' }
   | { name: 'book'; barbershopId?: string; serviceId?: string }
-  | { name: 'history' };
+  | { name: 'history' }
+  | { name: 'stats' };
 
 export function parseRoute(path: string, search = ''): Route {
   const clean = path.replace(/\/+$/, '') || '/';
@@ -16,6 +17,7 @@ export function parseRoute(path: string, search = ''): Route {
       serviceId: query.get('serviceId') ?? undefined };
   }
   if (clean === '/history') return { name: 'history' };
+  if (clean === '/stats') return { name: 'stats' };
   return { name: 'home' };
 }
 
@@ -29,6 +31,7 @@ export function routePath(route: Route): string {
       return text ? `/new?${text}` : '/new';
     }
     case 'history': return '/history';
+    case 'stats': return '/stats';
     default: return '/';
   }
 }

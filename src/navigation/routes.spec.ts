@@ -12,6 +12,8 @@ describe('routes', () => {
     expect(parseRoute('/')).toEqual({ name: 'home' });
     expect(parseRoute('/nope')).toEqual({ name: 'home' });
     expect(parseRoute('/history')).toEqual({ name: 'history' });
+    expect(parseRoute('/stats')).toEqual({ name: 'stats' });
+    expect(routePath({ name: 'stats' })).toBe('/stats');
   });
 
   it('writes back the same paths it reads', () => {
