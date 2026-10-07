@@ -8,6 +8,7 @@ import { AgendaPage } from './pages/AgendaPage';
 import { BookingPage } from './pages/BookingPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
+import { StatsPage } from './pages/StatsPage';
 import { LoadView } from './ui/LoadView';
 import { useLoad } from './ui/load';
 import { STYLES } from './ui/styles';
@@ -18,7 +19,7 @@ function pathInDomain(basePath: string): string {
   return path.startsWith(basePath) ? path.slice(basePath.length) || '/' : '/';
 }
 
-/** A barber's agenda and history, found by their user id among the barbershop's profiles. */
+/** A barber's agenda, history and metrics, found by their user id among the barbershop's profiles. */
 function BarberScreens({ context, userId, route, go }: { context: MountContext; userId: string; route: Route;
                                                         go(next: Route): void }) {
   const [own, reload] = useLoad(async () => ownBarber((await listBarbers(context.api)).data, userId), [userId],
@@ -26,10 +27,16 @@ function BarberScreens({ context, userId, route, go }: { context: MountContext; 
   return (
     <LoadView load={own} onRetry={reload} isEmpty={(id) => id === null}
               empty="Aún no tienes perfil de barbero. Pide al administrador de la barbería que lo cree.">
-      {(barberId) => (route.name === 'history'
-        ? <HistoryPage api={context.api} barberId={barberId!} onBack={() => go({ name: 'home' })} />
-        : <AgendaPage api={context.api} barberId={barberId!} title="Mi agenda"
-                      onHistory={() => go({ name: 'history' })} />)}
+      {(barberId) => {
+        if (route.name === 'history') {
+          return <HistoryPage api={context.api} barberId={barberId!} onBack={() => go({ name: 'home' })} />;
+        }
+        if (route.name === 'stats') {
+          return <StatsPage api={context.api} barberId={barberId!} onBack={() => go({ name: 'home' })} />;
+        }
+        return <AgendaPage api={context.api} barberId={barberId!} title="Mi agenda"
+                           onHistory={() => go({ name: 'history' })} onStats={() => go({ name: 'stats' })} />;
+      }}
     </LoadView>
   );
 }
