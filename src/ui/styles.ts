@@ -49,6 +49,10 @@ export const STYLES = `
 .ap-days, .ap-slots { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; }
 .ap-slots { flex-wrap: wrap; overflow: visible; }
 .ap-days { margin-bottom: .75rem; }
+.ap-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: .75rem; }
+.ap-metric { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 10px; padding: .85rem; }
+.ap-metric.highlight { border-color: #d4af37; grid-column: 1 / -1; }
+.ap-metric-value { color: #fff; font-size: 1.25rem; font-weight: 700; margin: 0; }
 .ap-chip-button { background: #1e1e1e; color: #fff; border: 1px solid #2a2a2a; border-radius: 8px; padding: .5rem .9rem;
   font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .ap-chip-button.selected { background: #d4af37; border-color: #d4af37; color: #121212; }
