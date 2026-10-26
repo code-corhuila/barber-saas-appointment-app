@@ -1,5 +1,5 @@
 import { isApiError, type ShellSession } from '../shell-contract';
-import type { Appointment, AppointmentStatus, Transition } from './types';
+import type { Appointment, AppointmentStatus, Review, ReviewPage, Transition } from './types';
 
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
@@ -74,4 +74,17 @@ export function ownBarber(barbers: { id: string; userId: string }[], userId: str
 /** What the completed appointments generated, the price each one was booked at. */
 export function completedTotal(appointments: Appointment[]): number {
   return appointments.filter((a) => a.status === 'COMPLETED').reduce((sum, a) => sum + a.priceAtBookingCents, 0);
+}
+
+/** The first {@code pages} pages of reviews, joined, with the summary and whether another page is left. */
+export async function reviewPages(read: (page: number) => Promise<ReviewPage>, pages: number):
+    Promise<{ reviews: Review[]; summary: ReviewPage['summary']; more: boolean }> {
+  const reviews: Review[] = [];
+  let last: ReviewPage | null = null;
+  for (let page = 1; page <= pages; page++) {
+    last = await read(page);
+    reviews.push(...last.data);
+    if (page >= last.meta.totalPages) break;
+  }
+  return { reviews, summary: last!.summary, more: last !== null && last.meta.page < last.meta.totalPages };
 }
