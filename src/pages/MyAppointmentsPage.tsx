@@ -5,8 +5,9 @@ import { isApiError } from '../shell-contract';
 import { cancelAppointment, listAppointments } from '../appointment/appointments-api';
 import { loadClientNames } from '../appointment/catalog';
 import { explain } from '../appointment/labels';
-import { canClientCancel } from '../appointment/rules';
+import { canClientCancel, canReview } from '../appointment/rules';
 import { AppointmentCard } from '../ui/AppointmentCard';
+import { ReviewSheet } from '../ui/ReviewSheet';
 import { Field } from '../ui/Field';
 import { LoadView } from '../ui/LoadView';
 import { messageOf, useLoad } from '../ui/load';
@@ -20,7 +21,7 @@ interface MyAppointmentsPageProps {
  * A client's appointments, most recent first (the prototype's (client)/appointments). The server
  * returns only theirs — of every barbershop while the session has entered none (DEC-APPT-06) — and
  * each card names its barbershop. Cancelling asks first, and the barbershop's window is checked by
- * the server.
+ * the server. A COMPLETED appointment offers "Calificar" (DEC-APPT-11) until it is rated.
  */
 export function MyAppointmentsPage({ api, onBook }: MyAppointmentsPageProps) {
   const [load, reload] = useLoad(async () => {
@@ -32,6 +33,15 @@ export function MyAppointmentsPage({ api, onBook }: MyAppointmentsPageProps) {
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rating, setRating] = useState<string | null>(null);
+  const [rated, setRated] = useState<ReadonlySet<string>>(new Set());
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function markRated(id: string, message: string) {
+    setRated((before) => new Set(before).add(id));
+    setRating(null);
+    setNotice(message);
+  }
 
   async function cancel(id: string) {
     setBusy(true);
@@ -55,10 +65,18 @@ export function MyAppointmentsPage({ api, onBook }: MyAppointmentsPageProps) {
         <IonButton className="ap-primary" onClick={onBook}>Reservar</IonButton>
       </div>
       {error && <div className="ap-alert" role="alert">{error}</div>}
+      {notice && <div className="ap-ok" role="status">{notice}</div>}
       <LoadView load={load} onRetry={reload} isEmpty={(d) => d.appointments.length === 0}
                 empty="Aún no tienes citas reservadas.">
         {({ appointments, names }) => appointments.map((a) => (
           <AppointmentCard key={a.id} appointment={a} names={names} showDate>
+            {canReview(a.status, a.id, rated) && (
+              <div className="ap-actions">
+                <IonButton className="ap-primary" onClick={() => { setRating(a.id); setNotice(null); }}>
+                  Calificar
+                </IonButton>
+              </div>
+            )}
             {canClientCancel(a.status) && confirming !== a.id && (
               <div className="ap-actions">
                 <IonButton fill="outline" className="ap-danger" disabled={busy}
@@ -82,6 +100,7 @@ export function MyAppointmentsPage({ api, onBook }: MyAppointmentsPageProps) {
           </AppointmentCard>
         ))}
       </LoadView>
+      <ReviewSheet api={api} appointmentId={rating} onClose={() => setRating(null)} onDone={markRated} />
     </section>
   );
 }
