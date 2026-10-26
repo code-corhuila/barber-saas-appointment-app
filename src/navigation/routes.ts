@@ -1,13 +1,15 @@
 /**
  * The screens of the domain, under the shell's basePath (/appointments). A client starts on their
  * appointments, a barber on their agenda and the owner on the barbershop's agenda; '/new' is the
- * booking, reached from barbershop-app as /appointments/new?barbershopId=…&serviceId=….
+ * booking, reached from barbershop-app as /appointments/new?barbershopId=…&serviceId=…, and '/reviews'
+ * the owner's reviews (DEC-APPT-11), reached from the shell's menu or the agenda.
  */
 export type Route =
   | { name: 'home' }
   | { name: 'book'; barbershopId?: string; serviceId?: string }
   | { name: 'history' }
-  | { name: 'stats' };
+  | { name: 'stats' }
+  | { name: 'reviews' };
 
 export function parseRoute(path: string, search = ''): Route {
   const clean = path.replace(/\/+$/, '') || '/';
@@ -18,6 +20,7 @@ export function parseRoute(path: string, search = ''): Route {
   }
   if (clean === '/history') return { name: 'history' };
   if (clean === '/stats') return { name: 'stats' };
+  if (clean === '/reviews') return { name: 'reviews' };
   return { name: 'home' };
 }
 
@@ -32,6 +35,7 @@ export function routePath(route: Route): string {
     }
     case 'history': return '/history';
     case 'stats': return '/stats';
+    case 'reviews': return '/reviews';
     default: return '/';
   }
 }
