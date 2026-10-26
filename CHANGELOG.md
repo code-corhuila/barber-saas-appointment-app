@@ -13,6 +13,7 @@ User stories: code-corhuila/barber-saas-docs#129, code-corhuila/barber-saas-docs
 
 - appointment: add the review calls and show appointment-api's Spanish 422s (suspended barbershop, already rated)
 - ui: rate a completed appointment from my appointments
+- ui: show the owner the barbershop's reviews, by barber
 
 ## [2.0.0] - 2026-10-08
 
