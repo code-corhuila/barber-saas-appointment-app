@@ -34,6 +34,11 @@ export function canClientCancel(status: AppointmentStatus): boolean {
   return status === 'PENDING' || status === 'CONFIRMED';
 }
 
+/** Only a COMPLETED appointment is rated (DEC-APPT-11); one already rated in this session is not offered again. */
+export function canReview(status: AppointmentStatus, appointmentId: string, rated: ReadonlySet<string>): boolean {
+  return status === 'COMPLETED' && !rated.has(appointmentId);
+}
+
 /** The barbershop to book in: the one of barbershop-app's link, or else the one the session entered. */
 export function bookingShop(fromLink: string | undefined, entered: string | null): string | null {
   return fromLink ?? entered ?? null;

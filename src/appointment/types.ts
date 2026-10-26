@@ -71,3 +71,20 @@ export interface Page<T> {
   data: T[];
   meta: { page: number; limit: number; total: number; totalPages: number };
 }
+
+/** appointment-service.yaml 2.6.0, Review (DEC-APPT-11): the client is shown only by "María G.". */
+export interface Review {
+  id: string;
+  appointmentId: string;
+  barbershopId: string;
+  barberId: string;
+  clientDisplayName: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+/** appointment-service.yaml, ReviewPage: the page plus the average and count of the same filter. */
+export interface ReviewPage extends Page<Review> {
+  summary: { averageRating: number | null; reviewCount: number };
+}
