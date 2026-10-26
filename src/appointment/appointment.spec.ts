@@ -5,9 +5,10 @@ import {
   listServices, listShopBarbers, listShopServices, move, reviewAppointment,
 } from './appointments-api';
 import { barberName, loadClientNames } from './catalog';
-import { actionsFor, bookingShop, canClientCancel, canReview, completedTotal, enterFailure, enterThen, nextDays, ownBarber } from './rules';
+import { actionsFor, bookingShop, canClientCancel, canReview, completedTotal, enterFailure, enterThen, nextDays, ownBarber,
+  reviewPages } from './rules';
 import { explain, formatCop, formatRating, isAlreadyReviewed, STATUS_LABELS } from './labels';
-import type { Appointment } from './types';
+import type { Appointment, ReviewPage } from './types';
 
 function fakeApi() {
   return {
@@ -282,5 +283,35 @@ describe('reviews', () => {
     expect(formatRating(4.25)).toBe('4,3');
     expect(formatRating(5)).toBe('5,0');
     expect(formatRating(null)).toBe('–');
+  });
+});
+
+describe("the owner's reviews", () => {
+  const page = (n: number, totalPages: number): ReviewPage => ({
+    data: [{ id: `r${n}`, appointmentId: `a${n}`, barbershopId: 'shop-1', barberId: 'b1', clientDisplayName: 'María G.',
+      rating: 5, comment: null, createdAt: '2026-10-20T10:00:00Z' }],
+    meta: { page: n, limit: 20, total: totalPages, totalPages },
+    summary: { averageRating: 4.5, reviewCount: totalPages },
+  });
+
+  it('joins the pages asked for and says whether another one is left', async () => {
+    const read = vi.fn((n: number) => Promise.resolve(page(n, 3)));
+
+    const two = await reviewPages(read, 2);
+
+    expect(two.reviews.map((r) => r.id)).toEqual(['r1', 'r2']);
+    expect(two.more).toBe(true);
+    expect(two.summary).toEqual({ averageRating: 4.5, reviewCount: 3 });
+    expect((await reviewPages(read, 3)).more).toBe(false);
+  });
+
+  it('stops at the last page and handles a barbershop without reviews', async () => {
+    const empty = vi.fn(() => Promise.resolve({ data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      summary: { averageRating: null, reviewCount: 0 } } as ReviewPage));
+
+    const none = await reviewPages(empty, 5);
+
+    expect(empty).toHaveBeenCalledTimes(1);
+    expect(none).toEqual({ reviews: [], summary: { averageRating: null, reviewCount: 0 }, more: false });
   });
 });
