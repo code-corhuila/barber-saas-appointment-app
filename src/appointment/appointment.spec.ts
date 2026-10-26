@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '../shell-contract';
 import {
-  bookAppointment, cancelAppointment, getAvailability, getBarbershop, listAppointments, listBarbers, listServices,
-  listShopBarbers, listShopServices, move,
+  bookAppointment, cancelAppointment, getAvailability, getBarbershop, listAppointments, listBarbers, listReviews,
+  listServices, listShopBarbers, listShopServices, move, reviewAppointment,
 } from './appointments-api';
 import { barberName, loadClientNames } from './catalog';
-import { actionsFor, bookingShop, canClientCancel, completedTotal, enterFailure, enterThen, nextDays, ownBarber } from './rules';
-import { explain, formatCop, STATUS_LABELS } from './labels';
+import { actionsFor, bookingShop, canClientCancel, canReview, completedTotal, enterFailure, enterThen, nextDays, ownBarber } from './rules';
+import { explain, formatCop, formatRating, isAlreadyReviewed, STATUS_LABELS } from './labels';
 import type { Appointment } from './types';
 
 function fakeApi() {
@@ -203,6 +203,11 @@ describe('business messages', () => {
     expect(explain(error(422, 'The barber already has an appointment at that time'))).toMatch(/ya fue reservado/);
     expect(explain(error(422, 'The barber does not offer that time on 2026-10-10'))).toMatch(/no atiende/);
     expect(explain(error(422, 'An appointment in COMPLETED cannot be cancelled'))).toMatch(/cambió de estado/);
+    expect(explain(error(422, 'Esta barbería no está recibiendo reservas')))
+      .toBe('Esta barbería no está recibiendo reservas');
+    expect(explain(error(422, 'Solo se puede calificar una cita completada')))
+      .toBe('Solo se puede calificar una cita completada');
+    expect(explain(error(422, 'Esta cita ya fue calificada'))).toBe('Ya calificaste esta cita');
     expect(explain(error(422, 'something else'))).toBe('del shell');
     expect(explain(error(404, 'Appointment not found'))).toBe('del shell');
   });
@@ -239,5 +244,43 @@ describe('entering the barbershop', () => {
 
     await expect(enterThen(session, 'shop-x', load)).rejects.toBe(notFound);
     expect(load).not.toHaveBeenCalled();
+  });
+});
+
+describe('reviews', () => {
+  it('rates an appointment with the rating and only a comment that is not empty', async () => {
+    const api = fakeApi();
+
+    await reviewAppointment(api, 'a1', 5, '  Excelente corte ');
+    await reviewAppointment(api, 'a2', 3, '   ');
+
+    expect(api.post).toHaveBeenNthCalledWith(1, '/api/v1/appointments/a1/review', { rating: 5, comment: 'Excelente corte' });
+    expect(api.post).toHaveBeenNthCalledWith(2, '/api/v1/appointments/a2/review', { rating: 3 });
+  });
+
+  it('lists the reviews of the barbershop, optionally of one barber', async () => {
+    const api = fakeApi();
+
+    await listReviews(api, 'shop-1');
+    await listReviews(api, 'shop-1', 'b1', 2);
+
+    expect(api.get).toHaveBeenNthCalledWith(1, '/api/v1/reviews?barbershopId=shop-1&page=1&limit=20');
+    expect(api.get).toHaveBeenNthCalledWith(2, '/api/v1/reviews?barbershopId=shop-1&barberId=b1&page=2&limit=20');
+  });
+
+  it('offers "Calificar" only for a COMPLETED appointment not rated yet', () => {
+    expect(canReview('COMPLETED', 'a1', new Set())).toBe(true);
+    expect(canReview('COMPLETED', 'a1', new Set(['a1']))).toBe(false);
+    expect(canReview('CONFIRMED', 'a1', new Set())).toBe(false);
+    expect(canReview('CANCELLED', 'a1', new Set())).toBe(false);
+  });
+
+  it('knows the 422 of a second review and shows averages with one decimal', () => {
+    expect(isAlreadyReviewed({ status: 422, message: 'Esta cita ya fue calificada' })).toBe(true);
+    expect(isAlreadyReviewed({ status: 422, message: 'Solo se puede calificar una cita completada' })).toBe(false);
+    expect(isAlreadyReviewed({ status: 404, message: 'Esta cita ya fue calificada' })).toBe(false);
+    expect(formatRating(4.25)).toBe('4,3');
+    expect(formatRating(5)).toBe('5,0');
+    expect(formatRating(null)).toBe('–');
   });
 });

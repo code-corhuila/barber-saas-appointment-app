@@ -47,5 +47,20 @@ export function explain(err: { status: number; message: string; userMessage: str
   if (err.message.startsWith('The barber does not offer that time')) return 'El barbero no atiende a esa hora. Elige otro horario.';
   if (err.message.startsWith('The service does not fit')) return 'El servicio no alcanza a terminar ese día. Elige una hora más temprano.';
   if (err.message.startsWith('An appointment in')) return 'La cita cambió de estado. Actualiza la lista.';
+  // appointment-api already words these in Spanish (DEC-APPT-10, DEC-APPT-11): shown as they come.
+  if (SERVER_TEXTS.some((text) => err.message.startsWith(text))) return err.message;
+  if (isAlreadyReviewed(err)) return 'Ya calificaste esta cita';
   return err.userMessage;
+}
+
+const SERVER_TEXTS = ['Esta barbería no está recibiendo reservas', 'Solo se puede calificar una cita completada'];
+
+/** The 422 of a second review of the same appointment (uq_review_appointment). */
+export function isAlreadyReviewed(err: { status: number; message: string }): boolean {
+  return err.status === 422 && err.message.startsWith('Esta cita ya fue calificada');
+}
+
+/** An average of reviews as people read it: one decimal with a comma, or a dash without reviews. */
+export function formatRating(average: number | null): string {
+  return average === null ? '–' : average.toFixed(1).replace('.', ',');
 }
