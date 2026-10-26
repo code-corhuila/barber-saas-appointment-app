@@ -58,5 +58,9 @@ export const STYLES = `
 .ap-chip-button.selected { background: #d4af37; border-color: #d4af37; color: #121212; }
 .ap-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
 .ap-danger { --color: #ff6b6b; --border-color: #ff6b6b; --border-radius: 10px; }
+.ap-stars { display: flex; gap: .25rem; margin: .5rem 0 1rem; }
+.ap-star { background: none; border: 0; padding: 0; font-size: 2rem; line-height: 1; color: #444; cursor: pointer; }
+span.ap-star { font-size: 1rem; cursor: default; }
+.ap-star.on { color: #d4af37; }
 .ap-reason { color: #aaa; font-size: .8rem; font-style: italic; margin: .35rem 0 0; }
 `;
