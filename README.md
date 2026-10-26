@@ -37,7 +37,7 @@ the prototype (`(client)/booking/[barbershopId]`, `(client)/appointments`, `(bar
 
 | Screen | Who | Calls |
 |---|---|---|
-| Mis citas: the client's appointments of every barbershop, cancel one | `CLIENT` | `GET /api/v1/appointments`, then per barbershop `GET /api/v1/barbershops/{id}`, `/services` and `/barbers` (barbershop-api, public), `POST …/{id}/cancel` |
+| Mis citas: the client's appointments of every barbershop, cancel one, rate a completed one (5 stars and an optional comment) | `CLIENT` | `GET /api/v1/appointments`, then per barbershop `GET /api/v1/barbershops/{id}`, `/services` and `/barbers` (barbershop-api, public), `POST …/{id}/cancel`, `POST …/{id}/review` |
 | Reservar cita: service, barber, day, free slot, note | `CLIENT` (from barbershop-app's *Continuar*: `/appointments/new?barbershopId&serviceId`) | `context.session.enterBarbershop(id)` first, then `GET /api/v1/barbershops/{id}/services` and `/barbers` (barbershop-api), `GET /api/v1/availability` (schedule-api), `POST /api/v1/appointments` with `Idempotency-Key` |
 | Mi agenda: one day, confirm, start, complete, no-show, cancel | `BARBER` (own profile) | `GET /api/v1/appointments?barberId&date`, `POST …/{id}/{transition}` |
 | Mi historial: completed appointments and their total | `BARBER` | `GET /api/v1/appointments?barberId&status=COMPLETED` |
