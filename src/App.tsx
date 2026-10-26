@@ -8,6 +8,7 @@ import { AgendaPage } from './pages/AgendaPage';
 import { BookingPage } from './pages/BookingPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
+import { ReviewsPage } from './pages/ReviewsPage';
 import { StatsPage } from './pages/StatsPage';
 import { LoadView } from './ui/LoadView';
 import { useLoad } from './ui/load';
@@ -82,7 +83,10 @@ export function App({ context }: { context: MountContext }) {
   } else if (user.role === 'BARBER') {
     screen = <BarberScreens context={context} userId={user.id} route={route} go={go} />;
   } else if (user.role === 'ADMIN_BARBERSHOP') {
-    screen = <AgendaPage api={context.api} title="Agenda" />;
+    const shop = context.session.barbershopId();
+    screen = route.name === 'reviews' && shop
+      ? <ReviewsPage api={context.api} barbershopId={shop} onBack={() => go({ name: 'home' })} />
+      : <AgendaPage api={context.api} title="Agenda" onReviews={shop ? () => go({ name: 'reviews' }) : undefined} />;
   } else {
     screen = <p className="ap-empty">La administración de la plataforma no gestiona citas de una barbería.</p>;
   }
