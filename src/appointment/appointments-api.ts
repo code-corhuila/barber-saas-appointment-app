@@ -1,6 +1,6 @@
 import type { ApiClient } from '../shell-contract';
 import type {
-  Appointment, Availability, Barbershop, BarberProfile, NewAppointment, Page, Service, Transition,
+  Appointment, Availability, Barbershop, BarberProfile, NewAppointment, Page, Review, ReviewPage, Service, Transition,
 } from './types';
 
 /**
@@ -69,4 +69,19 @@ export function getAvailability(api: ApiClient, barberId: string, serviceId: str
     Promise<Availability> {
   const query = new URLSearchParams({ barberId, serviceId, date });
   return api.get<Availability>(`/api/v1/availability?${query}`);
+}
+
+/** Rate a COMPLETED appointment of the client (DEC-APPT-11); an empty comment is left out. */
+export function reviewAppointment(api: ApiClient, id: string, rating: number, comment: string): Promise<Review> {
+  const text = comment.trim();
+  return api.post<Review>(`/api/v1/appointments/${id}/review`, text ? { rating, comment: text } : { rating });
+}
+
+/** A barbershop's reviews, newest first, optionally of one barber, with the summary (public read). */
+export function listReviews(api: ApiClient, barbershopId: string, barberId?: string, page = 1): Promise<ReviewPage> {
+  const query = new URLSearchParams({ barbershopId });
+  if (barberId) query.set('barberId', barberId);
+  query.set('page', String(page));
+  query.set('limit', '20');
+  return api.get<ReviewPage>(`/api/v1/reviews?${query}`);
 }
