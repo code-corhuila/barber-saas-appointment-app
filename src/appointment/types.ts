@@ -24,6 +24,8 @@ export interface Appointment {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
+  /** appointment-service.yaml 2.7.0 (DEC-APPT-11): the appointment already has its review; absent before. */
+  reviewed?: boolean;
 }
 
 /** appointment-service.yaml, BookAppointmentRequest: no price, status or barbershop (DEC-APPT-02). */
