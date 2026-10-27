@@ -70,7 +70,7 @@ export function MyAppointmentsPage({ api, onBook }: MyAppointmentsPageProps) {
                 empty="Aún no tienes citas reservadas.">
         {({ appointments, names }) => appointments.map((a) => (
           <AppointmentCard key={a.id} appointment={a} names={names} showDate>
-            {canReview(a.status, a.id, rated) && (
+            {canReview(a, rated) && (
               <div className="ap-actions">
                 <IonButton className="ap-primary" onClick={() => { setRating(a.id); setNotice(null); }}>
                   Calificar

@@ -270,10 +270,15 @@ describe('reviews', () => {
   });
 
   it('offers "Calificar" only for a COMPLETED appointment not rated yet', () => {
-    expect(canReview('COMPLETED', 'a1', new Set())).toBe(true);
-    expect(canReview('COMPLETED', 'a1', new Set(['a1']))).toBe(false);
-    expect(canReview('CONFIRMED', 'a1', new Set())).toBe(false);
-    expect(canReview('CANCELLED', 'a1', new Set())).toBe(false);
+    expect(canReview({ id: 'a1', status: 'COMPLETED' }, new Set())).toBe(true);
+    expect(canReview({ id: 'a1', status: 'COMPLETED', reviewed: false }, new Set())).toBe(true);
+    expect(canReview({ id: 'a1', status: 'COMPLETED' }, new Set(['a1']))).toBe(false);
+    expect(canReview({ id: 'a1', status: 'CONFIRMED' }, new Set())).toBe(false);
+    expect(canReview({ id: 'a1', status: 'CANCELLED' }, new Set())).toBe(false);
+  });
+
+  it('never offers "Calificar" again once appointment-api says it was reviewed, after leaving the tab', () => {
+    expect(canReview({ id: 'a1', status: 'COMPLETED', reviewed: true }, new Set())).toBe(false);
   });
 
   it('knows the 422 of a second review and shows averages with one decimal', () => {
