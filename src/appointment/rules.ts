@@ -34,9 +34,12 @@ export function canClientCancel(status: AppointmentStatus): boolean {
   return status === 'PENDING' || status === 'CONFIRMED';
 }
 
-/** Only a COMPLETED appointment is rated (DEC-APPT-11); one already rated in this session is not offered again. */
-export function canReview(status: AppointmentStatus, appointmentId: string, rated: ReadonlySet<string>): boolean {
-  return status === 'COMPLETED' && !rated.has(appointmentId);
+/**
+ * Only a COMPLETED appointment is rated, once (DEC-APPT-11): not when appointment-api says it already has its
+ * review, nor when it was rated in this session before the list is read again.
+ */
+export function canReview(a: Pick<Appointment, 'id' | 'status' | 'reviewed'>, rated: ReadonlySet<string>): boolean {
+  return a.status === 'COMPLETED' && !a.reviewed && !rated.has(a.id);
 }
 
 /** The barbershop to book in: the one of barbershop-app's link, or else the one the session entered. */
