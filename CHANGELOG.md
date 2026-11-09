@@ -5,15 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0.0] - 2026-11-05
 
-User stories: code-corhuila/barber-saas-docs#129, code-corhuila/barber-saas-docs#130
+User stories: code-corhuila/barber-saas-docs#129, code-corhuila/barber-saas-docs#130, code-corhuila/barber-saas-docs#145
 
 ### Added
 
-- appointment: add the review calls and show appointment-api's Spanish 422s (suspended barbershop, already rated)
+- appointment: add the review calls and show appointment-api's Spanish 422s
 - ui: rate a completed appointment from my appointments
+- appointment: read the reviews of the barbershop page by page
 - ui: show the owner the barbershop's reviews, by barber
+
+### Fixed
+
+- reviews: offer Calificar once, also after leaving the screen
+
+### Documentation
+
+- readme: rate a completed appointment from my appointments
+- readme: add the owner's reviews screen
 
 ## [2.0.0] - 2026-10-08
 
@@ -81,4 +91,5 @@ User stories: code-corhuila/barber-saas-docs#4, code-corhuila/barber-saas-docs#8
 - build: add ionic react 8, react 19 and typescript with the shell's versions
 - use the new repository name barber-saas-infra-postgres
 
+[3.0.0]: https://github.com/code-corhuila/barber-saas-appointment-app/releases/tag/v3.0.0
 [2.0.0]: https://github.com/code-corhuila/barber-saas-appointment-app/releases/tag/v2.0.0
